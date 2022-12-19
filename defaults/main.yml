@@ -1,0 +1,83 @@
+---
+prometheus_version: 2.37.5 # 2.37 is lts version
+prometheus_config_dir: /etc/prometheus
+prometheus_db_dir: /var/lib/prometheus
+prometheus_binary_dir: /usr/local/bin
+prometheus_minimum_systemd_version: 232
+
+# config
+
+prometheus_storage_retention: 30d
+prometheus_storage_retention_size: 0
+prometheus_web_listen_host: 0.0.0.0
+prometheus_web_listen_port: 9090
+prometheus_web_external_url: ''
+prometheus_metrics_path: /metrics
+# See https://github.com/prometheus/exporter-toolkit/blob/master/docs/web-configuration.md
+prometheus_web_config:
+  tls_server_config: {}
+  http_server_config: {}
+  basic_auth_users: {}
+
+# prometheus_config_flags_extra: {}
+# prometheus_config_flags_extra:
+#   storage.tsdb.retention: 15d
+#   alertmanager.timeout: 10s
+
+prometheus_read_only_dirs:
+  - "{{ prometheus_config_dir }}"
+  - "{{ prometheus_binary_dir }}"
+
+prometheus_alertmanager_config: []
+# prometheus_alertmanager_config:
+#   - scheme: https
+#     path_prefix: alertmanager/
+#     basic_auth:
+#       username: user
+#       password: pass
+#     static_configs:
+#       - targets: ["127.0.0.1:9093"]
+#     proxy_url: "127.0.0.2"
+
+prometheus_alert_relabel_configs: []
+# prometheus_alert_relabel_configs:
+#   - action: labeldrop
+#     regex: replica
+
+prometheus_global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+
+prometheus_remote_write: []
+# prometheus_remote_write:
+#   - url: https://dev.kausal.co/prom/push
+#     basic_auth:
+#       password: FOO
+
+prometheus_remote_read: []
+# prometheus_remote_read:
+#   - url: https://demo.cloudalchemy.org:9201/read
+#     basic_auth:
+#       password: FOO
+
+prometheus_targets: {}
+#  node:
+#    - targets:
+#        - localhost:9100
+#      labels:
+#        env: test
+
+prometheus_external_labels:
+  environment: "{{ ansible_fqdn | default(ansible_host) | default(inventory_hostname) }}"
+
+prometheus_scrape_configs:
+  - job_name: "prometheus"
+    metrics_path: "{{ prometheus_metrics_path }}"
+    static_configs:
+      - targets:
+          - "{{ prometheus_web_listen_host | default('localhost') }}:{{ prometheus_web_listen_port }}"
+  - job_name: "node"
+    file_sd_configs:
+      - files:
+          - "{{ prometheus_config_dir }}/file_sd/node.yml"
