@@ -1,0 +1,15 @@
+[Unit]
+Description={{ prometheus_alertmanager_git_repo }}
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+WorkingDirectory={{ prometheus_db_dir }}
+ExecStart={{ prometheus_binary_dir }}/alertmanager --config.file={{ prometheus_config_dir }}/alertmanager.yml --web.external-url http://0.0.0.0:9093
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

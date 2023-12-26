@@ -3,6 +3,8 @@ Ansible role: Prometheus
 
 Install prometheus on x86_64 systems with systemd >= 232
 
+[CHANGELOG](https://github.com/dragomirr/ansible-role-prometheus/blob/main/CHANGELOG.md)
+
 Requirements
 ------------
 

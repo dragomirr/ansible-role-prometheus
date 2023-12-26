@@ -5,3 +5,10 @@
     name: prometheus
     state: restarted
     daemon_reload: true
+
+- name: Restart alertmanager
+  become: true
+  ansible.builtin.systemd:
+    name: alertmanager
+    state: restarted
+    daemon_reload: true

@@ -1,0 +1,6 @@
+---
+prometheus__download_url: "{{ prometheus_git_repo }}/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+prometheus__alertmanager_download_url: >-
+  {{ prometheus_alertmanager_git_repo -}}
+  /releases/download/v{{ prometheus_alermanager_version -}}
+  /alertmanager-{{ prometheus_alermanager_version }}.linux-amd64.tar.gz

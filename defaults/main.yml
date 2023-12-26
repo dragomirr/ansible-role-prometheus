@@ -1,9 +1,12 @@
 ---
-prometheus_version: 2.37.5 # 2.37 is lts version
+prometheus_version: 2.45.2 # 2.45 is lts version
+prometheus_alermanager_version: 0.26.0
 prometheus_config_dir: /etc/prometheus
 prometheus_db_dir: /var/lib/prometheus
 prometheus_binary_dir: /usr/local/bin
 prometheus_minimum_systemd_version: 232
+prometheus_git_repo: https://github.com/prometheus/prometheus
+prometheus_alertmanager_git_repo: https://github.com/prometheus/alertmanager
 
 # config
 
@@ -13,6 +16,10 @@ prometheus_web_listen_host: 0.0.0.0
 prometheus_web_listen_port: 9090
 prometheus_web_external_url: ''
 prometheus_metrics_path: /metrics
+prometheus_service_requires:
+  - local-fs.target
+prometheus_service_after:
+  - local-fs.target
 # See https://github.com/prometheus/exporter-toolkit/blob/master/docs/web-configuration.md
 prometheus_web_config:
   tls_server_config: {}
@@ -38,6 +45,14 @@ prometheus_alertmanager_config: []
 #     static_configs:
 #       - targets: ["127.0.0.1:9093"]
 #     proxy_url: "127.0.0.2"
+
+# yamllint disable rule:indentation
+prometheus_alertmanager_config_hosts:
+  - static_configs:
+    - targets:
+      - localhost:9093
+# yamllint enable rule:indentation
+
 
 prometheus_alert_relabel_configs: []
 # prometheus_alert_relabel_configs:

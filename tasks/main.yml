@@ -1,15 +1,20 @@
 ---
 - name: Get systemd version
-  ansible.builtin.shell:
-    cmd: systemd --version | head -n 1 | awk '{ print $2 }'
+  ansible.builtin.shell: |
+    set -eo pipefail
+    systemd --version | head -n 1 | awk '{ print $2 }'
   changed_when: false
   check_mode: false
   register: prometheus__reg_systemd_version
+  tags:
+    - prometheus
 
 - name: Check if systemd version is valid
   ansible.builtin.assert:
     that:
       - prometheus__reg_systemd_version.stdout | int >= prometheus_minimum_systemd_version | int
+  tags:
+    - prometheus
 
 - name: Create system group
   become: true
@@ -17,6 +22,9 @@
     name: prometheus
     system: true
     state: present
+  tags:
+    - prometheus
+    - alertmanager
 
 - name: Create system user
   become: true
@@ -27,15 +35,9 @@
     group: prometheus
     createhome: false
     home: "{{ prometheus_db_dir }}"
-
-- name: Create data directory
-  become: true
-  ansible.builtin.file:
-    path: "{{ prometheus_db_dir }}"
-    state: directory
-    owner: prometheus
-    group: prometheus
-    mode: 0755
+  tags:
+    - prometheus
+    - alertmanager
 
 - name: Create configuration directories
   become: true
@@ -44,81 +46,21 @@
     state: directory
     owner: root
     group: prometheus
-    mode: 0770
+    mode: "0770"
   loop:
     - "{{ prometheus_config_dir }}"
     - "{{ prometheus_config_dir }}/rules"
     - "{{ prometheus_config_dir }}/file_sd"
-
-- name: Download prometheus
-  ansible.builtin.get_url:
-    url: https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz
-    dest: /tmp/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz
-    mode: 0644
-  retries: 5
-  delay: 3
-
-- name: Unpack prometheus
-  become: true
-  ansible.builtin.unarchive:
-    src: /tmp/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz
-    dest: /tmp
-    remote_src: true
-    owner: root
-    group: root
-
-- name: Copy binaries
-  become: true
-  ansible.builtin.copy:
-    src: /tmp/prometheus-{{ prometheus_version }}.linux-amd64/{{ item }}
-    dest: "{{ prometheus_binary_dir }}"
-    mode: 0755
-    owner: root
-    group: root
-    remote_src: true
-  loop:
+  tags:
     - prometheus
-    - promtool
-  notify:
-    - Restart prometheus
+    - alertmanager
 
-- name: Copy config
-  become: true
-  ansible.builtin.template:
-    src: prometheus.yml.j2
-    dest: /etc/prometheus/prometheus.yml
-    mode: 0644
-    owner: root
-    group: root
-    validate: "{{ prometheus_binary_dir }}/promtool check config %s"
-  notify:
-    - Restart prometheus
+- name: Prometheus | import tasks
+  ansible.builtin.import_tasks:
+    file: prometheus.yml
+  tags: prometheus
 
-- name: Configure web config
-  become: true
-  ansible.builtin.copy:
-    content: "{{ prometheus_web_config | to_nice_yaml(indent=2, sort_keys=False) }}"
-    dest: "{{ prometheus_config_dir }}/web.yml"
-    force: true
-    owner: root
-    group: prometheus
-    mode: 0640
-    validate: "{{ prometheus_binary_dir }}/promtool check config %s"
-
-- name: Copy service definition
-  become: true
-  ansible.builtin.template:
-    src: prometheus.service.j2
-    dest: /etc/systemd/system/prometheus.service
-    owner: root
-    group: root
-    mode: 0644
-  notify:
-    - Restart prometheus
-
-- name: Ensure prometheus is started and enabled
-  become: true
-  ansible.builtin.systemd:
-    name: prometheus
-    state: started
-    enabled: true
+- name: Alertmanager | import tasks
+  ansible.builtin.import_tasks:
+    file: alertmanager.yml
+  tags: alertmanager

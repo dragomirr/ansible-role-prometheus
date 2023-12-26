@@ -1,0 +1,62 @@
+---
+- name: Alertmanager | Download
+  ansible.builtin.get_url:
+    url: "{{ prometheus__alertmanager_download_url }}"
+    dest: /tmp/alertmanager-{{ prometheus_alermanager_version }}.linux-amd64.tar.gz
+    mode: "0644"
+  retries: 5
+  delay: 3
+
+- name: Alertmanager | Unpack
+  become: true
+  ansible.builtin.unarchive:
+    src: /tmp/alertmanager-{{ prometheus_alermanager_version }}.linux-amd64.tar.gz
+    dest: /tmp
+    remote_src: true
+    owner: root
+    group: root
+
+- name: Alertmanager | Copy binaries
+  become: true
+  ansible.builtin.copy:
+    src: /tmp/alertmanager-{{ prometheus_alermanager_version }}.linux-amd64/{{ item }}
+    dest: "{{ prometheus_binary_dir }}"
+    mode: "0755"
+    owner: root
+    group: root
+    remote_src: true
+  loop:
+    - alertmanager
+    - amtool
+  notify:
+    - Restart alertmanager
+
+- name: Alertmanager | Copy config
+  become: true
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: "{{ prometheus_config_dir }}/alertmanager.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart alertmanager
+
+- name: Alertmanager | Copy service definitions
+  become: true
+  ansible.builtin.template:
+    src: alertmanager.service.j2
+    dest: /etc/systemd/system/alertmanager.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Restart alertmanager
+
+- name: Alertmanager | Ensure alertmanager is started and enabled
+  become: true
+  ansible.builtin.systemd:
+    name: alertmanager
+    state: started
+    enabled: true
+  retries: 3
+  delay: 2
